@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Leela V1 Dashboard</title>
+    <style>
+        :root {
+            --bg-main: #1e1e1e;
+            --bg-sidebar: #252526;
+            --bg-activity: #333333;
+            --border: #3c3c3c;
+            --text-primary: #cccccc;
+            --text-secondary: #858585;
+            --accent: #007acc;
+            --accent-hover: #118ad4;
+            --item-hover: #2a2d2e;
+            --tab-active: #1e1e1e;
+            --tab-inactive: #2d2d2d;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            font-size: 13px;
+            height: 100vh;
+            display: flex;
+            user-select: none;
+        }
+
+        /* Sidebar - Activity Bar Style */
+        .sidebar {
+            width: 50px;
+            background: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 10px;
+            border-right: 1px solid var(--border);
+        }
+
+        .sidebar-icon {
+            width: 100%;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 20px;
+            position: relative;
+        }
+
+        .sidebar-icon:hover {
+            color: var(--text-primary);
+        }
+
+        .sidebar-icon.active {
+            color: var(--text-primary);
+            border-left: 2px solid var(--accent);
+        }
+
+        /* Mic Status Badge in Sidebar Bottom */
+        .sidebar-footer {
+            margin-top: auto;
+            padding-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .mic-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #444;
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        .mic-indicator.granted {
+            background: #22c55e;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+        }
+
+        .mic-indicator.recording {
+            background: #ef4444;
+            transform: scale(1.2);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 0.7;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Main Area */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Tabs Bar */
+        .tabs-bar {
+            height: 35px;
+            background: var(--tab-inactive);
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            height: 100%;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            background: var(--tab-inactive);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-right: 1px solid var(--border);
+            position: relative;
+        }
+
+        .tab.active {
+            background: var(--tab-active);
+            color: var(--text-primary);
+            border-top: 1px solid var(--accent);
+            margin-top: -1px;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 20px 30px;
+            overflow-y: auto;
+        }
+
+        h2 {
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 0 0 15px 0;
+            letter-spacing: 0.5px;
+        }
+
+        /* Activity List */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .activity-row {
+            display: grid;
+            grid-template-columns: 80px 100px 1fr;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.1s;
+            align-items: center;
+        }
+
+        .activity-row:hover {
+            background: var(--item-hover);
+        }
+
+        .row-type {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 11px;
+        }
+
+        .row-time {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .row-preview {
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 10px;
+        }
+
+        /* Settings Panels */
+        .settings-container {
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .setting-label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .setting-title {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .setting-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* VS Code Style Checkbox */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .checkbox-container input {
+            visibility: hidden;
+            width: 0;
+        }
+
+        .checkmark {
+            width: 18px;
+            height: 18px;
+            background: #3c3c3c;
+            border: 1px solid #3c3c3c;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s;
+        }
+
+        .checkbox-container input:checked+.checkmark {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .checkmark:after {
+            content: "✓";
+            color: white;
+            font-size: 12px;
+            display: none;
+        }
+
+        .checkbox-container input:checked+.checkmark:after {
+            display: block;
+        }
+
+        /* Modal Details */
+        #details-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 100vh;
+            background: var(--bg-sidebar);
+            border-left: 1px solid var(--border);
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+            display: none;
+            flex-direction: column;
+            padding: 24px;
+            z-index: 100;
+        }
+
+        .panel-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+
+        .panel-close:hover {
+            color: var(--text-primary);
+        }
+
+        .panel-section {
+            margin-bottom: 24px;
+        }
+
+        .panel-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .panel-content {
+            background: var(--bg-main);
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-main);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333333;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444444;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-icon active" onclick="showTab('activity')" title="Activity History">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" />
+            </svg>
+        </div>
+        <div class="sidebar-icon" onclick="showTab('settings')" title="Settings">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+            </svg>
+        </div>
+
+        <div class="sidebar-footer">
+            <div id="mic-indicator" class="mic-indicator" title="Microphone: Checking..."></div>
+            <div class="sidebar-icon" style="font-size: 14px; opacity: 0.6; cursor: default;"
+                title="Recording Engine Integrated">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                    <path
+                        d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="tabs-bar">
+            <div id="tab-activity" class="tab active" onclick="showTab('activity')">Activity history</div>
+            <div id="tab-settings" class="tab" onclick="showTab('settings')">Settings</div>
+        </div>
+
+        <div class="content">
+            <div id="pane-activity" class="tab-pane active">
+                <h2>Recent activities</h2>
+                <div id="activity-list" class="activity-list">
+                    <!-- Rows will be injected here -->
+                </div>
+            </div>
+
+            <div id="pane-settings" class="tab-pane">
+                <h2>Preferences</h2>
+                <div class="settings-container">
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="setting-title">Status Overlay</span>
+                            <span class="setting-desc">Display the floating status bar at the top center of the screen
+                                during processing.</span>
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="overlayEnabled"
+                                onchange="updateSetting('overlayEnabled', this.checked)">
+                            <div class="checkmark"></div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="setting-title">Activity Logging</span>
+                            <span class="setting-desc">Keep a local record of dictations and polished text
+                                snippets.</span>
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="historyEnabled"
+                                onchange="updateSetting('historyEnabled', this.checked)">
+                            <div class="checkmark"></div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="setting-title">Run on Startup</span>
+                            <span class="setting-desc">Launch Leela V1 automatically when you log into Windows.</span>
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="startWithWindows"
+                                onchange="updateSetting('startWithWindows', this.checked)">
+                            <div class="checkmark"></div>
+                        </label>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border); margin: 10px 0; padding-top: 15px;">
+                        <h2 style="margin-bottom: 20px;">Sarvam AI API</h2>
+                        <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 15px;">
+                            <div class="setting-label">
+                                <span class="setting-title">Connection Status</span>
+                                <span id="api-status-badge"
+                                    style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; margin-top: 5px;">Checking...</span>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; width: 100%;">
+                                <button onclick="updateApiKey()"
+                                    style="background: var(--accent); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Update
+                                    Key</button>
+                                <button onclick="testCurrentKey()"
+                                    style="background: var(--bg-activity); color: var(--text-primary); border: 1px solid var(--border); padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Test
+                                    Connection</button>
+                                <button onclick="removeApiKey()"
+                                    style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Remove
+                                    Key</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="setup-pane"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--bg-sidebar); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px;">
+        <div style="max-width: 440px; text-align: center;">
+            <div
+                style="font-size: 32px; font-weight: 800; margin-bottom: 10px; background: linear-gradient(135deg, var(--accent), #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                LEELA</div>
+            <h1 style="font-size: 24px; margin-bottom: 15px; color: var(--text-primary);">Connect Sarvam AI</h1>
+            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 30px;">
+                Leela requires a Sarvam AI API key to function.<br>
+                Generate your key at <a href="#"
+                    onclick="require('electron').shell.openExternal('https://dashboard.sarvam.ai')"
+                    style="color: var(--accent); text-decoration: none; font-weight: 600;">dashboard.sarvam.ai</a>
+            </p>
+
+            <div style="text-align: left; margin-bottom: 25px;">
+                <label
+                    style="display: block; margin-bottom: 8px; font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Sarvam
+                    API Key</label>
+                <input type="password" id="setup-api-key" placeholder="Paste your key here (e.g., sk_...)"
+                    style="width: 100%; padding: 12px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+                <button id="btn-setup-test" onclick="testSetupKey()"
+                    style="flex: 1; padding: 12px; background: var(--bg-activity); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600;">Test
+                    Connection</button>
+                <button id="btn-setup-save" onclick="saveSetupKey()" disabled
+                    style="flex: 1; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; opacity: 0.5;">Save
+                    & Continue</button>
+            </div>
+            <button id="btn-setup-cancel" onclick="document.getElementById('setup-pane').style.display='none'"
+                style="width: 100%; padding: 10px; background: none; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 11px; display: none;">Cancel</button>
+            <div id="setup-status" style="margin-top: 15px; font-size: 12px; min-height: 18px;"></div>
+        </div>
+    </div>
+
+    <div id="details-panel">
+        <span class="panel-close" onclick="closePanel()">×</span>
+        <div class="panel-section">
+            <div class="panel-label">Input / Context</div>
+            <div id="panel-input" class="panel-content"></div>
+        </div>
+        <div class="panel-section">
+            <div class="panel-label">Generated Output</div>
+            <div id="panel-output" class="panel-content"></div>
+        </div>
+        <div class="panel-section">
+            <div class="panel-label" id="panel-meta">Metadata</div>
+            <div id="panel-status" style="font-size: 11px; color: var(--text-secondary);"></div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        async function loadHistory() {
+            const history = await ipcRenderer.invoke('get-history');
+            const list = document.getElementById('activity-list');
+            list.innerHTML = '';
+
+            if (history.length === 0) {
+                list.innerHTML = '<div style="color: var(--text-secondary); font-style: italic;">No activities recorded yet.</div>';
+                return;
+            }
+
+            history.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'activity-row';
+                row.onclick = () => openPanel(item);
+
+                const time = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const typeLabel = item.type.split(' ').pop(); // Just 'Dictation' or 'Polish'
+
+                row.innerHTML = `
+                    <div class="row-type">${typeLabel.toUpperCase()}</div>
+                    <div class="row-time">${time}</div>
+                    <div class="row-preview">${item.output || item.input}</div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        async function loadSettings() {
+            const settings = await ipcRenderer.invoke('get-settings');
+            document.getElementById('overlayEnabled').checked = settings.overlayEnabled;
+            document.getElementById('historyEnabled').checked = settings.historyEnabled;
+            document.getElementById('startWithWindows').checked = settings.startWithWindows;
+            updateApiKeyStatus();
+        }
+
+        async function updateApiKeyStatus() {
+            const hasKey = await ipcRenderer.invoke('has-sarvam-key');
+            const badge = document.getElementById('api-status-badge');
+            if (hasKey) {
+                badge.textContent = 'CONNECTED ✅';
+                badge.style.background = 'rgba(34, 197, 94, 0.1)';
+                badge.style.color = '#22c55e';
+            } else {
+                badge.textContent = 'NOT CONNECTED ❌';
+                badge.style.background = 'rgba(239, 68, 68, 0.1)';
+                badge.style.color = '#ef4444';
+            }
+        }
+
+        async function testCurrentKey() {
+            const badge = document.getElementById('api-status-badge');
+            const originalText = badge.textContent;
+            badge.textContent = 'Testing...';
+
+            const response = await ipcRenderer.invoke('test-sarvam-key', null);
+            if (response.ok) {
+                alert('Connection successful!');
+                updateApiKeyStatus();
+            } else {
+                alert(`Connection failed: ${response.error}`);
+                updateApiKeyStatus();
+            }
+        }
+
+        function updateApiKey() {
+            // Show the integrated setup pane
+            document.getElementById('setup-pane').style.display = 'flex';
+            // Also show the cancel button if there's already a key
+            ipcRenderer.invoke('has-sarvam-key').then(hasKey => {
+                const cancelBtn = document.getElementById('btn-setup-cancel');
+                if (cancelBtn) cancelBtn.style.display = hasKey ? 'block' : 'none';
+            });
+        }
+
+        async function removeApiKey() {
+            if (confirm('Are you sure you want to remove your Sarvam API key? The app will require a new key to function.')) {
+                await ipcRenderer.invoke('remove-sarvam-key');
+                updateApiKeyStatus();
+                // Immediately show setup if key is removed
+                document.getElementById('setup-pane').style.display = 'flex';
+                const cancelBtn = document.getElementById('btn-setup-cancel');
+                if (cancelBtn) cancelBtn.style.display = 'none';
+                alert('API key removed. Please enter a new key.');
+            }
+        }
+
+        function updateSetting(key, value) {
+            ipcRenderer.send('update-setting', { [key]: value });
+        }
+
+        function showTab(id) {
+            // Update sidebar icons
+            document.querySelectorAll('.sidebar-icon').forEach(el => el.classList.remove('active'));
+            // Update horizontal tabs
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            // Update panes
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+
+            if (id === 'activity') {
+                document.querySelector('.sidebar-icon[title="Activity History"]').classList.add('active');
+                document.getElementById('tab-activity').classList.add('active');
+                document.getElementById('pane-activity').classList.add('active');
+                loadHistory();
+            } else {
+                document.querySelector('.sidebar-icon[title="Settings"]').classList.add('active');
+                document.getElementById('tab-settings').classList.add('active');
+                document.getElementById('pane-settings').classList.add('active');
+            }
+            closePanel();
+        }
+
+        function openPanel(item) {
+            document.getElementById('panel-input').textContent = item.input || '(None)';
+            document.getElementById('panel-output').textContent = item.output || '(No result)';
+            document.getElementById('panel-status').textContent = `ID: ${item.id} | Status: ${item.status}`;
+            document.getElementById('details-panel').style.display = 'flex';
+        }
+
+        function closePanel() {
+            document.getElementById('details-panel').style.display = 'none';
+        }
+
+        ipcRenderer.on('history-updated', () => {
+            console.log('Dashboard: History received update notification');
+            if (document.getElementById('pane-activity').classList.contains('active')) {
+                loadHistory();
+            }
+        });
+
+        async function checkInitialState() {
+            const hasKey = await ipcRenderer.invoke('has-sarvam-key');
+            if (!hasKey) {
+                document.getElementById('setup-pane').style.display = 'flex';
+            } else {
+                document.getElementById('setup-pane').style.display = 'none';
+            }
+        }
+
+        async function testSetupKey() {
+            const keyInput = document.getElementById('setup-api-key').value.trim();
+            const statusMsg = document.getElementById('setup-status');
+            const btnSave = document.getElementById('btn-setup-save');
+
+            if (!keyInput) {
+                statusMsg.textContent = 'Please enter an API key.';
+                statusMsg.style.color = 'var(--error)';
+                return;
+            }
+
+            statusMsg.textContent = 'Testing connection...';
+            statusMsg.style.color = 'var(--text-primary)';
+
+            const response = await ipcRenderer.invoke('test-sarvam-key', keyInput);
+            if (response.ok) {
+                statusMsg.textContent = 'Connection successful! ✅';
+                statusMsg.style.color = 'var(--success)';
+                btnSave.disabled = false;
+                btnSave.style.opacity = '1';
+            } else {
+                statusMsg.textContent = `Error: ${response.error || 'Connection failed'}`;
+                statusMsg.style.color = 'var(--error)';
+                btnSave.disabled = true;
+                btnSave.style.opacity = '0.5';
+            }
+        }
+
+        async function saveSetupKey() {
+            const keyInput = document.getElementById('setup-api-key').value.trim();
+            const success = await ipcRenderer.invoke('save-sarvam-key', keyInput);
+            if (success) {
+                document.getElementById('setup-pane').style.display = 'none';
+                updateApiKeyStatus();
+            } else {
+                alert('Failed to save API key.');
+            }
+        }
+
+        ipcRenderer.on('key-saved', () => {
+            checkInitialState();
+            updateApiKeyStatus();
+        });
+
+        // --- Integrated Recording & Mic Logic ---
+        const fs = require('fs');
+        const path = require('path');
+        const micIndicator = document.getElementById('mic-indicator');
+
+        let mediaRecorder = null;
+        let currentStream = null;
+        let chunks = [];
+        let isRecording = false;
+        let isProcessingVoice = false; // Lock to prevent overlapping sessions
+
+        function setMicStatus(text, cls) {
+            micIndicator.title = 'Microphone: ' + text;
+            micIndicator.className = 'mic-indicator ' + cls;
+        }
+
+        function playPop() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.015);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.25);
+            } catch (e) { console.warn('Audio play failed', e); }
+        }
+
+        async function checkMicPermission() {
+            try {
+                if (navigator.permissions && navigator.permissions.query) {
+                    const status = await navigator.permissions.query({ name: 'microphone' });
+                    updateMicUI(status.state);
+                    status.onchange = () => updateMicUI(status.state);
+                    return;
+                }
+            } catch (e) { }
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                updateMicUI('granted');
+            } catch (e) { updateMicUI('denied'); }
+        }
+
+        function updateMicUI(state) {
+            if (state === 'granted') setMicStatus('Granted', 'granted');
+            else if (state === 'prompt') setMicStatus('Prompt', '');
+            else setMicStatus('Denied', 'denied');
+        }
+
+        async function requestMicAccess() {
+            try {
+                const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+                try { s.getTracks().forEach(t => t.stop()); } catch (_) { }
+                updateMicUI('granted');
+            } catch (e) {
+                updateMicUI('denied');
+                console.error('requestMicAccess error', e);
+            }
+        }
+
+        async function startRecording() {
+            if (isRecording || isProcessingVoice) {
+                console.warn('[RECORDER] startRecording blocked: already recording or processing.');
+                return;
+            }
+            try {
+                console.log('[RECORDER] Requesting stream and starting recording...');
+                currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(currentStream, { mimeType: 'audio/webm' });
+                chunks = [];
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) chunks.push(e.data);
+                };
+                mediaRecorder.onstop = onRecordingStop;
+                mediaRecorder.start();
+                isRecording = true;
+                setMicStatus('Recording', 'recording');
+                ipcRenderer.send('update-app-state', 'LISTENING');
+                console.log('[RECORDER] Recording started successfully.');
+            } catch (e) {
+                console.error('[RECORDER] Failed to start recording', e);
+                updateMicUI('denied');
+                ipcRenderer.send('update-app-state', 'ERROR');
+            }
+        }
+
+        async function stopRecording() {
+            if (!isRecording || !mediaRecorder) {
+                console.warn('[RECORDER] stopRecording blocked: not currently recording.');
+                return;
+            }
+            console.log('[RECORDER] Stopping recording...');
+            isProcessingVoice = true; // Engage lock until API transcription resolves
+            ipcRenderer.send('update-app-state', 'PROCESSING');
+            mediaRecorder.stop();
+            try {
+                if (currentStream && currentStream.getTracks) {
+                    currentStream.getTracks().forEach(t => t.stop());
+                }
+            } catch (e) { console.error('[RECORDER] Error stopping tracks:', e); }
+            currentStream = null;
+            isRecording = false;
+            updateMicUI('granted');
+        }
+
+        async function onRecordingStop() {
+            console.log('[RECORDER] MediaRecorder stopped, assembling blob.');
+            try {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                const arrayBuffer = await blob.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                const localPath = path.join(__dirname, '..', `recording-${Date.now()}.webm`);
+                fs.writeFileSync(localPath, buffer);
+
+                console.log(`[API] Triggering 'process-recording' IPC with ${localPath}`);
+                const result = await ipcRenderer.invoke('process-recording', localPath);
+
+                if (result && result.ok) {
+                    console.log('[API] process-recording succeeded.');
+                    loadHistory();
+                } else {
+                    console.error('[API] process-recording failed:', result ? result.error : 'unknown');
+                }
+            } catch (e) {
+                console.error('[API] Error in onRecordingStop:', e);
+            } finally {
+                chunks = [];
+                isProcessingVoice = false; // Release lock
+                console.log('[RECORDER] Processing lock released.');
+            }
+        }
+
+        ipcRenderer.on('hotkey-toggle', () => {
+            console.log('[HOTKEY] hotkey-toggle event received.');
+            playPop();
+            if (!isRecording) startRecording();
+            else stopRecording();
+        });
+
+        ipcRenderer.on('play-command-sound', () => {
+            playPop();
+        });
+
+        // Initialize state
+        checkInitialState();
+        loadSettings();
+        loadHistory();
+        checkMicPermission();
+        setTimeout(() => {
+            if (micIndicator && micIndicator.className === 'mic-indicator ') requestMicAccess();
+        }, 1000);
+    </script>
+</body>
+
+</html>
